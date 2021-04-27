@@ -1,0 +1,4 @@
+genere_app
+__pycache__
+dist/
+build/
