@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import tkinter as tk
 from tkinter import ttk
 from datetime import time, timedelta, datetime
@@ -5,7 +6,8 @@ from nptime import nptime
 from pathlib import Path
 import odoorpc
 import configparser
-VERSION = "0.8" 
+
+VERSION = "0.9"
 config = configparser.ConfigParser()
 home = Path.home()
 timer_ini = home / "timer.ini"
@@ -31,9 +33,9 @@ class TimerView(tk.Frame):
 
         style.configure("BW.TLabel", foreground="red", background="white")
 
-        button_red_style = ttk.Style()  # style for button1
+        button_red_style = ttk.Style()    # style for button1
         button_red_style.configure('red.TButton', foreground='red')
-        button_connect_style = ttk.Style()  # style for button1
+        button_connect_style = ttk.Style()    # style for button1
         button_red_style.configure('connect.TButton', foreground='red')
 
         self.task_name = tk.StringVar()
@@ -92,8 +94,7 @@ class TimerView(tk.Frame):
         if self.oe.env.uid:
             tasks_odoo = self.oe.env['project.task'].search_read([('partner_id', '!=', False)], fields=['name', 'partner_id'])
             style = ttk.Style(self)
-            style.map('connect.TButton',
-                      foreground=[('focus', 'green'), ('!focus', 'green')])
+            style.map('connect.TButton', foreground=[('focus', 'green'), ('!focus', 'green')])
             self.button_connect.configure(text="re-connect")
 
             for t in tasks_odoo:
