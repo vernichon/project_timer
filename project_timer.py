@@ -7,7 +7,7 @@ from pathlib import Path
 import odoorpc
 import configparser
 
-VERSION = "0.9"
+VERSION = "1.0"
 config = configparser.ConfigParser()
 home = Path.home()
 timer_ini = home / "timer.ini"
@@ -33,16 +33,16 @@ class TimerView(tk.Frame):
 
         style.configure("BW.TLabel", foreground="red", background="white")
 
-        button_red_style = ttk.Style()    # style for button1
-        button_red_style.configure('red.TButton', foreground='red')
-        button_connect_style = ttk.Style()    # style for button1
-        button_red_style.configure('connect.TButton', foreground='red')
+        button_red_style = ttk.Style()  # style for button1
+        button_red_style.configure('red.TButton', foreground='red', background="white")
+        button_connect_style = ttk.Style()  # style for button1
+        button_red_style.configure('connect.TButton', foreground='red', background="white")
 
         self.task_name = tk.StringVar()
         self.task_name.set("/")
-        self.label = ttk.Label(text="00:00:00", font=('Helvetica', 48), style="BW.TLabel")
+        self.label = ttk.Label(text="00:00:00", font=('Helvetica', 32), background="white",foreground="red")
         self.label_description = ttk.Label(text="Description", font=('Helvetica', 18))
-        self.description = ttk.Entry(textvariable=self.task_name, font=('Helvetica', 18))
+        self.description = ttk.Entry(textvariable=self.task_name, font=('Helvetica', 12), width=90)
         self.label_log = ttk.Label(text="", font=('Helvetica', 18), style="BW.TLabel")
         self.version_log = ttk.Label(text="Version : %s" % VERSION, font=('Helvetica', 18), style="BW.TLabel")
         self.label_selection_config = ttk.Label(text="Odoo Config", font=('Helvetica', 18))
@@ -61,8 +61,8 @@ class TimerView(tk.Frame):
         self.selection_client.place(x=20, y=25)
         self.label_description.place(x=20, y=65)
         self.description.place(x=120, y=65)
-        self.selection_task.place(x=200, y=25)
-        self.label.place(x=500, y=20)
+        self.selection_task.place(x=240, y=25)
+        self.label.place(x=500, y=10)
         self.button_reset.place(x=220, y=150)
         self.button_stop.place(x=120, y=150)
         self.button_start.place(x=20, y=150)
@@ -74,6 +74,7 @@ class TimerView(tk.Frame):
         self.version_log.place(x=520, y=250)
         self.focus_set()
         self.selection_client.focus_force()
+        self.connect_odoo()
 
     def connect_odoo(self):
         self.tasks = {}
@@ -86,19 +87,20 @@ class TimerView(tk.Frame):
         db = config[section]['db']
         try:
             self.oe = odoorpc.ODOO(serveur, port=port, protocol=protocol)
-        except:
-            self.label_log.configure(text="Serveur indisponible")
+        except Exception as e:
+            self.label_log.configure(text="Serveur indisponible"+e)
             return False
         self.oe.login(db, user, password)
 
         if self.oe.env.uid:
-            tasks_odoo = self.oe.env['project.task'].search_read([('partner_id', '!=', False)], fields=['name', 'partner_id'])
+            tasks_odoo = self.oe.env['project.task'].search_read([('partner_id', '!=', False), ('active','=',True)],
+                                                                 fields=['name', 'partner_id','effective_hours'],order="create_date")
             style = ttk.Style(self)
             style.map('connect.TButton', foreground=[('focus', 'green'), ('!focus', 'green')])
             self.button_connect.configure(text="re-connect")
 
             for t in tasks_odoo:
-                task_name = t['name']
+                task_name = t['name'] + '(%s)' % t['effective_hours']
                 if t['partner_id'][1] not in self.customers:
                     self.customers_array.append(t['partner_id'][1])
                     self.customers[t['partner_id'][1]] = t['partner_id'][0]
@@ -136,7 +138,7 @@ class TimerView(tk.Frame):
             minutes = self.duration.minute + (self.duration.second / 60.0)
             value_duration = value_duration + (minutes / 60.0)
             if value_duration > 0:
-                data = {'task_id': task_id, 'name': name, 'unit_amount': value_duration}
+                data = {'task_id': task_id, 'product_uom_id': 6, 'name': name, 'unit_amount': value_duration}
                 try:
                     res_id = self.oe.env['account.analytic.line'].create(data)
                     self.label_log.configure(text="Entrée %s créé" % res_id)
@@ -190,7 +192,7 @@ class Clock(tk.Tk):
         # Define the UI
         TimerView(self).grid(sticky=(tk.E + tk.W + tk.N + tk.S))
         self.columnconfigure(0, weight=1)
-
+        
 
 if __name__ == '__main__':
     app = Clock()
